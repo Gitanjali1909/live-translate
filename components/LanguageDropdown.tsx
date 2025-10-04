@@ -1,7 +1,9 @@
 'use client'
 import { useAppStore } from '@/store/useAppStore'
 
-const languages = [
+export type LanguageCode = 'en' | 'hi' | 'fr' | 'es' | 'de'
+
+const languages: { code: LanguageCode; name: string }[] = [
   { code: 'en', name: 'English' },
   { code: 'hi', name: 'Hindi' },
   { code: 'fr', name: 'French' },
@@ -14,7 +16,7 @@ export default function LanguageDropdown() {
   return (
     <select
       value={targetLanguage}
-      onChange={(e) => setTargetLanguage(e.target.value)}
+      onChange={(e) => setTargetLanguage(e.target.value as LanguageCode)}
       className="p-2 rounded bg-gray-800 text-white"
     >
       {languages.map((lang) => (
