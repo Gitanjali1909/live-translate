@@ -3,6 +3,13 @@ import { useState, useRef, useEffect } from "react"
 import { Mic, MicOff, ChevronDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
+declare global {
+  interface Window {
+    SpeechRecognition?: typeof SpeechRecognition
+    webkitSpeechRecognition?: typeof SpeechRecognition
+  }
+}
+
 const Index = () => {
   const [isRecording, setIsRecording] = useState(false)
   const [transcription, setTranscription] = useState("")
@@ -12,7 +19,7 @@ const Index = () => {
 
   const transcriptionRef = useRef<HTMLTextAreaElement>(null)
   const translationRef = useRef<HTMLDivElement>(null)
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   const languages = [
     { code: "es", name: "Spanish" },
@@ -49,20 +56,21 @@ const Index = () => {
   }, [transcription, targetLanguage])
 
   const toggleRecording = () => {
-    if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+    const SpeechRecognitionClass =
+      window.SpeechRecognition || window.webkitSpeechRecognition
+
+    if (!SpeechRecognitionClass) {
       alert("Speech recognition not supported in this browser.")
       return
     }
 
     if (!isRecording) {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      const recognition = new SpeechRecognition()
+      const recognition = new SpeechRecognitionClass()
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = "en-US"
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         let finalTranscript = ""
         for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
@@ -88,36 +96,33 @@ const Index = () => {
   }
 
   const translateText = async (text: string, target: string) => {
-  try {
-    const chunks = text.match(/.{1,500}/g) || [] // split text every 500 chars
-    let translated = ""
-    for (const chunk of chunks) {
-      // Indirect, through your Next.js backend
-const res = await fetch("/api/translate", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    q: chunk,
-    source: "en",
-    target: target,
-    format: "text"
-  }),
-});
-const data = await res.json();
-translated += (data.translation || "") + " ";
+    try {
+      const chunks = text.match(/.{1,500}/g) || []
+      let translated = ""
+      for (const chunk of chunks) {
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            q: chunk,
+            source: "en",
+            target,
+            format: "text",
+          }),
+        })
+        const data: { translation?: string } = await res.json()
+        translated += (data.translation || "") + " "
+      }
+      setTranslation(translated.trim())
+    } catch {
+      setTranslation("Translation failed")
     }
-    setTranslation(translated.trim())
-  } catch {
-    setTranslation("Translation failed")
   }
-}
-
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700/20" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
-
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
         <motion.header
           initial={{ opacity: 0, y: -20 }}
@@ -128,9 +133,7 @@ translated += (data.translation || "") + " ";
           <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 bg-clip-text text-transparent">
             Live Translate
           </h1>
-          <p className="text-gray-400 text-lg">
-            Speak or type, translate instantly
-          </p>
+          <p className="text-gray-400 text-lg">Speak or type, translate instantly</p>
         </motion.header>
 
         <motion.div
@@ -230,7 +233,9 @@ translated += (data.translation || "") + " ";
                 ref={translationRef}
                 className="min-h-[300px] max-h-[400px] overflow-y-auto bg-gray-900/50 rounded-lg p-4 border border-gray-700/20 text-white"
               >
-                {translation || <span className="text-gray-400 italic">Translation will appear here...</span>}
+                {translation || (
+                  <span className="text-gray-400 italic">Translation will appear here...</span>
+                )}
               </div>
             </div>
           </motion.div>
