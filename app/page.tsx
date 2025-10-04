@@ -92,18 +92,19 @@ const Index = () => {
     const chunks = text.match(/.{1,500}/g) || [] // split text every 500 chars
     let translated = ""
     for (const chunk of chunks) {
-      const res = await fetch("https://libretranslate.de/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          q: chunk,
-          source: "en",
-          target: target,
-          format: "text"
-        })
-      })
-      const data = await res.json()
-      translated += data.translatedText + " "
+      // Indirect, through your Next.js backend
+const res = await fetch("/api/translate", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    q: chunk,
+    source: "en",
+    target: target,
+    format: "text"
+  }),
+});
+const data = await res.json();
+translated += (data.translation || "") + " ";
     }
     setTranslation(translated.trim())
   } catch {

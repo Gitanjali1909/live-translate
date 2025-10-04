@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 interface AppState {
+  sourceLanguage: any
   isRecording: boolean
   transcription: string
   translation: string
@@ -13,6 +14,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
+  sourceLanguage: 'auto',
   isRecording: false,
   transcription: '',
   translation: '',

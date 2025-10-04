@@ -13,7 +13,7 @@ export default function AutoTranslate() {
     if (timerRef.current) window.clearTimeout(timerRef.current);
     if (!transcription) return;
     timerRef.current = window.setTimeout(() => {
-      translateText(transcription, source, target);
+      translateText(transcription, target);
     }, 600); // debounce
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
